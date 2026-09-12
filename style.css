@@ -10,7 +10,7 @@ body {
 model-viewer {
   width: 100%;
   max-width: 600px;
-  height: 75vh;
+  height: 100%;
   background: blanchedalmond;
 }
 p {
