@@ -1,0 +1,19 @@
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #111;
+  color: #eee;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+model-viewer {
+  width: 100%;
+  max-width: 600px;
+  height: 75vh;
+  background: blanchedalmond;
+}
+p {
+    max-width: 600px;
+    padding: 0 16px;
+}
