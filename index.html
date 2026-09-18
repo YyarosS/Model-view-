@@ -4,35 +4,25 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101b2b">
-  <title>Каменный голем · WebAR</title>
+  <title>WebAR</title>
   <script type="module" src="vendor/model-viewer.min.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main>
-    <section class="viewer" aria-label="Интерактивная 3D-модель">
-      <div class="viewer-label"><span class="dot"></span> 3D / AR <span class="number">GOLEM</span></div>
-      <model-viewer id="golem" src="assets/golem.glb" alt="Каменный голем"
-        ar ar-modes="webxr scene-viewer quick-look" ar-placement="floor"
+    <section class="viewer">
+      <model-viewer 
+        src="models/electric_guitar_explorer.glb"
+        ar
+        ar-modes="webxr scene-viewer quick-look"
+        ar-placement="floor"
         camera-controls touch-action="pan-y" auto-rotate
-        environment-image="assets/moon_1k.hdr" exposure="1"
-        shadow-intensity="1" shadow-softness="0.8" camera-orbit="25deg 75deg auto">
-        <button class="ar-button" slot="ar-button">⌖ Разместить в AR</button>
+        environment-image="assets/moon_1k.hdr"
+        exposure="1"
+        shadow-intensity="1" shadow-softness="0.8"
+        camera-orbit="25deg 75deg auto">
       </model-viewer>
-      <div class="viewer-footer"><button id="rotate" type="button" aria-pressed="true">Вращение: вкл.</button></div>
     </section>
   </main>
-  <script>
-    const viewer = document.querySelector('model-viewer');
-    const rotate = document.querySelector('#rotate');
-    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reducedMotion) { viewer.removeAttribute('auto-rotate'); rotate.textContent = 'Вращение: выкл.'; rotate.setAttribute('aria-pressed', 'false'); }
-    rotate.addEventListener('click', () => {
-    const enabled = !viewer.hasAttribute('auto-rotate');
-    viewer.toggleAttribute('auto-rotate', enabled);
-    rotate.setAttribute('aria-pressed', String(enabled));
-    rotate.textContent = `Вращение: ${enabled ? 'вкл.' : 'выкл.'}`;
-    });
-  </script>
 </body>
 </html>
