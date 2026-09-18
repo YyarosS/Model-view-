@@ -17,3 +17,8 @@ p {
     max-width: 600px;
     padding: 0 16px;
 }
+
+#ar-status {
+  min-height: 1.5em;
+  text-align: center;
+}

@@ -2,23 +2,236 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Задание 1 — WebAR с model-viewer</title>
-  <link rel="stylesheet" href="style.css">
-  <script type="module"
-    src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js">
-  </script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a1a;
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .header {
+      padding: 20px;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.5);
+    }
+    
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 10px;
+    }
+    
+    .instructions {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    model-viewer {
+      width: 100%;
+      height: calc(100vh - 150px);
+      background: #2a2a2a;
+      --poster-color: transparent;
+    }
+    
+    .ar-button {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 25px;
+      font-size: 1rem;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+      z-index: 100;
+    }
+    
+    .ar-button:hover {
+      background: #45a049;
+      transform: scale(1.05);
+    }
+    
+    .ar-button:disabled {
+      background: #666;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    
+    .status {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      z-index: 1000;
+      display: none;
+    }
+    
+    .status.show {
+      display: block;
+    }
+    
+    .fallback-message {
+      display: none;
+      padding: 40px 20px;
+      text-align: center;
+      background: #2a2a2a;
+      margin: 20px;
+      border-radius: 10px;
+    }
+    
+    .fallback-message.show {
+      display: block;
+    }
+    
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 1.2rem;
+      }
+      
+      .instructions {
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+  
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
 </head>
 <body>
+  <div class="header">
+    <h1>🎸 Электрогитара в AR</h1>
+    <p class="instructions">
+      Нажмите кнопку "AR" чтобы разместить гитару в вашем пространстве. 
+      Работает в Chrome на Android и Safari на iOS.
+    </p>
+  </div>
+
   <model-viewer
+    id="guitar-viewer"
     src="models/electric_guitar_explorer.glb"
     ios-src="models/Electric_Guitar_Explorer.usdz"
+    alt="3D модель электрогитары Explorer"
     ar
     ar-modes="webxr scene-viewer quick-look"
-    ar-scale="fixed"
+    ar-placement="floor"
+    ar-scale="auto"
     camera-controls
-    powerPreference="high-performance"
-    auto-rotate>
+    auto-rotate
+    shadow-intensity="1"
+    exposure="1"
+    environment-image="neutral"
+    poster="models/poster.png"
+    loading="eager"
+    disable-zoom>
+    
+    <button slot="ar-button" class="ar-button" id="ar-button">
+      🥽 Посмотреть в AR
+    </button>
+    
+    <div slot="progress-bar"></div>
   </model-viewer>
+
+  <div class="status" id="status"></div>
+  
+  <div class="fallback-message" id="fallback">
+    <h2>⚠️ AR недоступен</h2>
+    <p>Ваш браузер или устройство не поддерживают WebAR.</p>
+    <p>Вы можете вращать модель вручную в 3D режиме.</p>
+  </div>
+
+  <script>
+    const modelViewer = document.querySelector('#guitar-viewer');
+    const arButton = document.querySelector('#ar-button');
+    const status = document.querySelector('#status');
+    const fallback = document.querySelector('#fallback');
+
+    // Проверка поддержки AR
+    async function checkARSupport() {
+      try {
+        if ('xr' in navigator) {
+          const supported = await navigator.xr.isSessionSupported('immersive-ar');
+          return supported;
+        }
+        return false;
+      } catch (error) {
+        console.log('AR проверка не удалась:', error);
+        return false;
+      }
+    }
+
+    // Показать статус
+    function showStatus(message, duration = 3000) {
+      status.textContent = message;
+      status.classList.add('show');
+      setTimeout(() => {
+        status.classList.remove('show');
+      }, duration);
+    }
+
+    // Обработчик активации AR
+    modelViewer.addEventListener('ar-status', (event) => {
+      const status = event.detail.status;
+      
+      switch(status) {
+        case 'session-started':
+          showStatus('✅ AR режим активирован');
+          break;
+        case 'session-ended':
+          showStatus('AR режим завершен');
+          break;
+        case 'failed':
+          showStatus('❌ Не удалось запустить AR');
+          fallback.classList.add('show');
+          break;
+      }
+    });
+
+    // Обработчик ошибок загрузки модели
+    modelViewer.addEventListener('error', (event) => {
+      console.error('Ошибка загрузки модели:', event);
+      showStatus('❌ Ошибка загрузки 3D модели');
+    });
+
+    // Проверка при загрузке страницы
+    window.addEventListener('load', async () => {
+      const arSupported = await checkARSupport();
+      
+      if (!arSupported) {
+        console.log('WebXR AR не поддерживается, пробуем другие режимы...');
+        // model-viewer автоматически попробует scene-viewer на Android
+      }
+      
+      showStatus('📱 Загрузка модели...', 2000);
+    });
+
+    // Дополнительная проверка для Android без ARCore
+    if (/Android/.test(navigator.userAgent)) {
+      // Проверяем наличие Scene Viewer (альтернатива WebXR)
+      const hasSceneViewer = /Chrome/.test(navigator.userAgent) && 
+                            /Android/.test(navigator.userAgent);
+      
+      if (!hasSceneViewer) {
+        console.warn('Scene Viewer может быть недоступен');
+      }
+    }
+  </script>
 </body>
 </html>
