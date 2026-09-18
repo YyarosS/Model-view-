@@ -104,7 +104,7 @@
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { 
-                        facingMode: 'user', // Фронтальная камера ('environment' для задней)
+                        facingMode: 'environment', // Фронтальная камера ('environment' для задней)
                         width: { ideal: 1280 },
                         height: { ideal: 720 }
                     } 
