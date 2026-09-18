@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>WebAR Гитара - WebXR Hit-Test</title>
+  <title>WebAR Гитара - Без маркера</title>
+  
+  <!-- A-Frame -->
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  
+  <!-- MindAR для отслеживания поверхностей -->
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
   
   <style>
     * {
@@ -15,19 +21,6 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       overflow: hidden;
-      background: #000;
-    }
-    
-    #canvas-container {
-      width: 100vw;
-      height: 100vh;
-      position: relative;
-    }
-    
-    canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
     }
     
     .ui-overlay {
@@ -75,35 +68,26 @@
     .btn {
       display: inline-block;
       margin: 5px;
-      padding: 12px 24px;
+      padding: 10px 20px;
       background: #4CAF50;
       color: white;
       border: none;
-      border-radius: 25px;
-      font-size: 1rem;
+      border-radius: 20px;
+      font-size: 0.9rem;
       cursor: pointer;
-      transition: all 0.3s;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      transition: background 0.3s;
     }
     
-    .btn:hover:not(:disabled) {
+    .btn:hover {
       background: #45a049;
-      transform: scale(1.05);
     }
     
     .btn:disabled {
       background: #666;
       cursor: not-allowed;
-      opacity: 0.6;
     }
     
-    .btn.start-ar {
-      background: #2196F3;
-      font-size: 1.1rem;
-      padding: 15px 30px;
-    }
-    
-    .status {
+    .loading {
       position: fixed;
       top: 50%;
       left: 50%;
@@ -114,17 +98,18 @@
       border-radius: 15px;
       font-size: 1.2rem;
       z-index: 2000;
-      text-align: center;
+      display: flex;
+      align-items: center;
+      gap: 15px;
     }
     
     .spinner {
-      width: 40px;
-      height: 40px;
+      width: 30px;
+      height: 30px;
       border: 4px solid rgba(255, 255, 255, 0.3);
       border-top-color: white;
       border-radius: 50%;
       animation: spin 1s linear infinite;
-      margin: 0 auto 15px;
     }
     
     @keyframes spin {
@@ -133,7 +118,7 @@
     
     .instructions {
       position: fixed;
-      bottom: 120px;
+      bottom: 100px;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(0, 0, 0, 0.8);
@@ -143,302 +128,128 @@
       font-size: 1rem;
       z-index: 1000;
       text-align: center;
-      display: none;
+      animation: fadeInOut 4s ease-in-out;
     }
     
-    .instructions.show {
-      display: block;
-      animation: fadeIn 0.5s ease;
-    }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    @keyframes fadeInOut {
+      0%, 100% { opacity: 0; }
+      20%, 80% { opacity: 1; }
     }
   </style>
 </head>
 <body>
-  <div id="canvas-container"></div>
-  
-  <!-- Начальный экран -->
-  <div class="status" id="startScreen">
-    <h2 style="margin-bottom: 20px;">🎸 AR Гитара</h2>
-    <p style="margin-bottom: 20px; opacity: 0.8;">Разместите гитару в вашем пространстве</p>
-    <button class="btn start-ar" id="startArBtn">▶️ Запустить AR</button>
-    <p style="margin-top: 15px; font-size: 0.8rem; opacity: 0.6;">
-      Требуется Chrome на Android
-    </p>
-  </div>
-  
   <!-- Индикатор загрузки -->
-  <div class="status" id="loadingScreen" style="display: none;">
+  <div class="loading" id="loading">
     <div class="spinner"></div>
-    <span>Загрузка AR...</span>
+    <span>Инициализация AR...</span>
   </div>
 
-  <!-- UI Overlay (показывается после запуска AR) -->
-  <div class="ui-overlay" id="arUI" style="display: none;">
+  <!-- UI Overlay -->
+  <div class="ui-overlay">
     <div class="header">
       <h1>🎸 Электрогитара в AR</h1>
-      <p>Найдите плоскую поверхность</p>
-    </div>
-    
-    <div class="instructions" id="instructions">
-      Наведите камеру на пол или стол
+      <p>Наведите камеру на плоскую поверхность</p>
     </div>
     
     <div class="controls">
-      <button class="btn" id="placeBtn" disabled>📍 Разместить здесь</button>
+      <button class="btn" id="placeBtn" disabled>📍 Разместить гитару</button>
       <button class="btn" id="resetBtn">🔄 Сбросить</button>
     </div>
   </div>
 
-  <!-- Three.js и WebXR -->
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-      }
-    }
-  </script>
+  <!-- Инструкция -->
+  <div class="instructions" id="instructions">
+    Двигайте телефон медленно, чтобы найти поверхность
+  </div>
 
-  <script type="module">
-    import * as THREE from 'three';
-    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-    import { ARButton } from 'three/addons/webxr/ARButton.js';
+  <!-- AR Scene -->
+  <a-scene 
+    embedded 
+    mindar-image="imageTargetSrc: ; maxTrack: 1;"
+    renderer="logarithmicDepthBuffer: true; antialias: true;"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false">
+    
+    <!-- Камера с отслеживанием поверхности -->
+    <a-camera 
+      position="0 0 0" 
+      look-controls="enabled: false"
+      cursor="fuse: false; rayOrigin: mouse;"
+      raycaster="objects: .clickable">
+    </a-camera>
+    
+    <!-- Контейнер для размещенной модели -->
+    <a-entity id="guitar-container" visible="false">
+      <a-gltf-model 
+        id="guitar"
+        src="models/electric_guitar_explorer.glb"
+        position="0 0 0"
+        scale="0.3 0.3 0.3"
+        rotation="-90 0 0">
+      </a-gltf-model>
+    </a-entity>
+  </a-scene>
 
-    let camera, scene, renderer;
-    let controller;
-    let reticle;
-    let hitTestSource = null;
-    let hitTestSourceRequested = false;
-    let guitarModel = null;
-    let isPlaced = false;
-
-    const startScreen = document.getElementById('startScreen');
-    const loadingScreen = document.getElementById('loadingScreen');
-    const arUI = document.getElementById('arUI');
-    const startArBtn = document.getElementById('startArBtn');
+  <script>
+    const loading = document.getElementById('loading');
     const placeBtn = document.getElementById('placeBtn');
     const resetBtn = document.getElementById('resetBtn');
+    const guitarContainer = document.getElementById('guitar-container');
     const instructions = document.getElementById('instructions');
-
-    init();
-    animate();
-
-    function init() {
-      const container = document.getElementById('canvas-container');
-
-      // Сцена
-      scene = new THREE.Scene();
-
-      // Камера
-      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-
-      // Освещение
-      const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
-      light.position.set(0.5, 1, 0.25);
-      scene.add(light);
-      
-      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-      directionalLight.position.set(5, 10, 7);
-      scene.add(directionalLight);
-
-      // Рендерер
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setPixelRatio(window.devicePixelRatio);
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.xr.enabled = true;
-      container.appendChild(renderer.domElement);
-
-      // Контроллер для tap-to-place
-      controller = renderer.xr.getController(0);
-      controller.addEventListener('select', onSelect);
-      scene.add(controller);
-
-      // Ретикл (прицел для размещения)
-      reticle = new THREE.Mesh(
-        new THREE.RingGeometry(0.15, 0.2, 32).rotateX(-Math.PI / 2),
-        new THREE.MeshBasicMaterial({ color: 0x4CAF50 })
-      );
-      reticle.matrixAutoUpdate = false;
-      reticle.visible = false;
-      scene.add(reticle);
-
-      // Обработчики событий
-      startArBtn.addEventListener('click', onStartAR);
-      placeBtn.addEventListener('click', onPlaceGuitar);
-      resetBtn.addEventListener('click', onReset);
-
-      // Resize handler
-      window.addEventListener('resize', onWindowResize);
-    }
-
-    function onStartAR() {
-      startScreen.style.display = 'none';
-      loadingScreen.style.display = 'flex';
-
-      // Создаем кнопку AR от Three.js
-      const arButton = ARButton.createButton(renderer, {
-        requiredFeatures: ['hit-test'],
-        optionalFeatures: ['dom-overlay'],
-        domOverlay: { root: document.body }
-      });
-      
-      document.body.appendChild(arButton);
-      
-      // Автоматически кликаем по кнопке AR
+    
+    let isPlaced = false;
+    let hitTestResult = null;
+    
+    // Скрыть загрузку когда сцена готова
+    window.addEventListener('load', () => {
       setTimeout(() => {
-        arButton.click();
-      }, 100);
-      
-      // Показываем UI когда AR запущен
-      renderer.xr.addEventListener('sessionstart', () => {
-        loadingScreen.style.display = 'none';
-        arUI.style.display = 'flex';
-        instructions.classList.add('show');
+        loading.style.display = 'none';
+        placeBtn.disabled = false;
+      }, 2000);
+    });
+    
+    // Обработка клика для размещения объекта
+    document.querySelector('a-scene').addEventListener('click', (evt) => {
+      if (!isPlaced && evt.detail.intersection) {
+        const intersectPoint = evt.detail.intersection.point;
         
-        setTimeout(() => {
-          instructions.classList.remove('show');
-        }, 5000);
-      });
-    }
-
-    function onSelect() {
-      if (reticle.visible && !isPlaced) {
-        placeGuitarAtReticle();
-      }
-    }
-
-    function onPlaceGuitar() {
-      if (reticle.visible && !isPlaced) {
-        placeGuitarAtReticle();
-      }
-    }
-
-    function placeGuitarAtReticle() {
-      if (!guitarModel) {
-        loadGuitarModel();
-      }
-      
-      guitarModel.position.copy(reticle.position);
-      guitarModel.rotation.set(-Math.PI / 2, 0, 0);
-      guitarModel.visible = true;
-      
-      isPlaced = true;
-      placeBtn.textContent = '✅ Размещено';
-      placeBtn.disabled = true;
-      
-      // Анимация появления
-      guitarModel.scale.set(0, 0, 0);
-      animateScale(guitarModel, 0.3);
-    }
-
-    function animateScale(object, targetScale) {
-      let scale = 0;
-      const interval = setInterval(() => {
-        scale += 0.02;
-        object.scale.set(scale, scale, scale);
+        // Размещаем гитару в точке пересечения
+        guitarContainer.setAttribute('position', {
+          x: intersectPoint.x,
+          y: intersectPoint.y,
+          z: intersectPoint.z
+        });
+        guitarContainer.setAttribute('visible', 'true');
         
-        if (scale >= targetScale) {
-          object.scale.set(targetScale, targetScale, targetScale);
-          clearInterval(interval);
-        }
-      }, 16);
-    }
-
-    function onReset() {
-      if (guitarModel) {
-        guitarModel.visible = false;
+        isPlaced = true;
+        placeBtn.textContent = '✅ Гитара размещена';
+        placeBtn.disabled = true;
+        
+        console.log('Гитара размещена в:', intersectPoint);
       }
+    });
+    
+    // Кнопка размещения
+    placeBtn.addEventListener('click', () => {
+      if (!isPlaced) {
+        instructions.textContent = 'Коснитесь экрана чтобы разместить гитару';
+        instructions.style.animation = 'none';
+        instructions.style.opacity = '1';
+      }
+    });
+    
+    // Кнопка сброса
+    resetBtn.addEventListener('click', () => {
+      guitarContainer.setAttribute('visible', 'false');
       isPlaced = false;
-      placeBtn.textContent = '📍 Разместить здесь';
+      placeBtn.textContent = '📍 Разместить гитару';
       placeBtn.disabled = false;
-      instructions.classList.add('show');
-      
-      setTimeout(() => {
-        instructions.classList.remove('show');
-      }, 5000);
-    }
-
-    function loadGuitarModel() {
-      const loader = new GLTFLoader();
-      loader.load(
-        'models/electric_guitar_explorer.glb',
-        (gltf) => {
-          guitarModel = gltf.scene;
-          guitarModel.visible = false;
-          scene.add(guitarModel);
-          console.log('Модель загружена');
-        },
-        undefined,
-        (error) => {
-          console.error('Ошибка загрузки модели:', error);
-          // Fallback: создаем простой куб
-          createFallbackObject();
-        }
-      );
-    }
-
-    function createFallbackObject() {
-      const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-      const material = new THREE.MeshStandardMaterial({ color: 0x4CAF50 });
-      guitarModel = new THREE.Mesh(geometry, material);
-      guitarModel.visible = false;
-      scene.add(guitarModel);
-    }
-
-    function onWindowResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    function animate() {
-      renderer.setAnimationLoop(render);
-    }
-
-    function render(timestamp, frame) {
-      if (frame) {
-        const referenceSpace = renderer.xr.getReferenceSpace();
-        const session = renderer.xr.getSession();
-
-        if (hitTestSourceRequested === false) {
-          session.requestReferenceSpace('viewer').then((referenceSpace) => {
-            session.requestHitTestSource({ space: referenceSpace }).then((source) => {
-              hitTestSource = source;
-            });
-          });
-
-          session.addEventListener('end', () => {
-            hitTestSourceRequested = false;
-            hitTestSource = null;
-          });
-
-          hitTestSourceRequested = true;
-        }
-
-        if (hitTestSource) {
-          const hitTestResults = frame.getHitTestResults(hitTestSource);
-
-          if (hitTestResults.length > 0) {
-            const hit = hitTestResults[0];
-            reticle.visible = true;
-            reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
-            
-            if (!isPlaced) {
-              placeBtn.disabled = false;
-            }
-          } else {
-            reticle.visible = false;
-            placeBtn.disabled = true;
-          }
-        }
-      }
-
-      renderer.render(scene, camera);
-    }
+      instructions.textContent = 'Двигайте телефон медленно, чтобы найти поверхность';
+      instructions.style.animation = 'fadeInOut 4s ease-in-out';
+    });
+    
+    // Альтернативный метод: автоматическое размещение при обнаружении поверхности
+    // (требует более сложной настройки hit-test)
   </script>
 </body>
 </html>
