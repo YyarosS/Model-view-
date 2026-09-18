@@ -1,20 +1,14 @@
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: Arial, sans-serif;
       overflow: hidden;
     }
     
     .ui-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
       pointer-events: none;
       z-index: 1000;
       display: flex;
@@ -24,7 +18,7 @@
     }
     
     .header {
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.8);
       color: white;
       padding: 15px;
       border-radius: 10px;
@@ -32,18 +26,11 @@
       pointer-events: auto;
     }
     
-    .header h1 {
-      font-size: 1.3rem;
-      margin-bottom: 5px;
-    }
+    .header h1 { font-size: 1.2rem; margin-bottom: 5px; }
+    .header p { font-size: 0.85rem; opacity: 0.9; }
     
-    .header p {
-      font-size: 0.9rem;
-      opacity: 0.9;
-    }
-    
-    .controls {
-      background: rgba(0, 0, 0, 0.7);
+    .marker-info {
+      background: rgba(0, 0, 0, 0.8);
       color: white;
       padding: 15px;
       border-radius: 10px;
@@ -51,73 +38,47 @@
       pointer-events: auto;
     }
     
-    .btn {
-      display: inline-block;
-      margin: 5px;
-      padding: 10px 20px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 20px;
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-    
-    .btn:hover {
-      background: #45a049;
-    }
-    
-    .btn:disabled {
-      background: #666;
-      cursor: not-allowed;
+    .marker-img {
+      width: 150px;
+      height: 150px;
+      margin: 10px auto;
+      border: 3px solid white;
+      border-radius: 5px;
+      background: white;
     }
     
     .loading {
       position: fixed;
-      top: 50%;
-      left: 50%;
+      top: 50%; left: 50%;
       transform: translate(-50%, -50%);
       background: rgba(0, 0, 0, 0.9);
       color: white;
-      padding: 30px 50px;
+      padding: 30px;
       border-radius: 15px;
-      font-size: 1.2rem;
       z-index: 2000;
-      display: flex;
-      align-items: center;
-      gap: 15px;
+      text-align: center;
     }
     
     .spinner {
-      width: 30px;
-      height: 30px;
-      border: 4px solid rgba(255, 255, 255, 0.3);
-      border-top-color: white;
+      width: 40px; height: 40px;
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top-color: #4CAF50;
       border-radius: 50%;
       animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
     }
     
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     
-    .instructions {
+    .error {
       position: fixed;
-      bottom: 100px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.8);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 0, 0, 0.9);
       color: white;
-      padding: 15px 25px;
-      border-radius: 25px;
-      font-size: 1rem;
-      z-index: 1000;
+      padding: 30px;
+      border-radius: 15px;
+      z-index: 2000;
       text-align: center;
-      animation: fadeInOut 4s ease-in-out;
-    }
-    
-    @keyframes fadeInOut {
-      0%, 100% { opacity: 0; }
-      20%, 80% { opacity: 1; }
+      display: none;
     }

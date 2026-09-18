@@ -3,112 +3,125 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>WebAR</title>
+  <title>WebAR Гитара - Быстрый старт</title>
   
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   
-  <!-- MindAR -->
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <!-- AR.js -->
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/three.js/build/ar.js"></script>
   
 </head>
 <body>
-  <!-- Индикатор загрузки -->
+  <!-- Экран загрузки -->
   <div class="loading" id="loading">
     <div class="spinner"></div>
-    <span>Инициализация AR...</span>
+    <div>Загрузка камеры...</div>
   </div>
+  
+  <!-- Экран ошибки -->
+  <div class="error" id="error">
+    <h2>⚠️ Ошибка</h2>
+    <p id="error-text"></p>
+    <button onclick="location.reload()" style="margin-top: 15px; padding: 10px 20px; background: white; color: red; border: none; border-radius: 5px;">
+      Повторить
+    </button>
+  </div>
+
+  <!-- UI -->
+  <div class="ui-overlay">
+    <div class="header">
+      <h1>🎸 AR Гитара</h1>
+      <p>Наведите камеру на маркер Kanji ниже</p>
+    </div>
     
-    <div class="controls">
-      <button class="btn" id="placeBtn" disabled>📍 Разместить гитару</button>
-      <button class="btn" id="resetBtn">🔄 Сбросить</button>
+    <div class="marker-info">
+      <p>Маркер для распознавания:</p>
+      <!-- Встроенный маркер Kanji -->
+      <img src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/kanji.png" 
+           class="marker-img" 
+           alt="Kanji Marker">
+      <p style="font-size: 0.8rem; margin-top: 10px;">
+        Откройте это изображение на другом устройстве<br>
+        или распечатайте
+      </p>
     </div>
   </div>
 
   <!-- AR Scene -->
   <a-scene 
     embedded 
-    mindar-image="imageTargetSrc: ; maxTrack: 1;"
-    renderer="logarithmicDepthBuffer: true; antialias: true;"
-    vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: false">
+    arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
+    renderer="antialias: true; alpha: true;">
     
-    <!-- Камера с отслеживанием поверхности -->
-    <a-camera 
-      position="0 0 0" 
-      look-controls="enabled: false"
-      cursor="fuse: false; rayOrigin: mouse;"
-      raycaster="objects: .clickable">
-    </a-camera>
-    
-    <!-- Контейнер для размещенной модели -->
-    <a-entity id="guitar-container" visible="false">
+    <!-- Маркер Kanji -->
+    <a-marker preset="kanji" emitevents="true">
+      <!-- 3D модель гитары -->
       <a-gltf-model 
-        id="guitar"
         src="models/electric_guitar_explorer.glb"
         position="0 0 0"
         scale="0.3 0.3 0.3"
         rotation="-90 0 0">
       </a-gltf-model>
-    </a-entity>
+      
+      <!-- Fallback: если модель не загрузится, покажем куб -->
+      <!--
+      <a-box 
+        position="0 0.5 0" 
+        material="color: #4CAF50; opacity: 0.8"
+        animation="property: rotation; to: 0 360 0; loop: true; dur: 3000">
+      </a-box>
+      -->
+    </a-marker>
+    
+    <a-entity camera></a-entity>
   </a-scene>
 
   <script>
     const loading = document.getElementById('loading');
-    const placeBtn = document.getElementById('placeBtn');
-    const resetBtn = document.getElementById('resetBtn');
-    const guitarContainer = document.getElementById('guitar-container');
-    const instructions = document.getElementById('instructions');
-    
-    let isPlaced = false;
-    let hitTestResult = null;
+    const error = document.getElementById('error');
+    const errorText = document.getElementById('error-text');
+    const scene = document.querySelector('a-scene');
     
     // Скрыть загрузку когда сцена готова
-    window.addEventListener('load', () => {
+    scene.addEventListener('loaded', () => {
       setTimeout(() => {
         loading.style.display = 'none';
-        placeBtn.disabled = false;
-      }, 2000);
+      }, 1000);
     });
     
-    // Обработка клика для размещения объекта
-    document.querySelector('a-scene').addEventListener('click', (evt) => {
-      if (!isPlaced && evt.detail.intersection) {
-        const intersectPoint = evt.detail.intersection.point;
-        
-        // Размещаем гитару в точке пересечения
-        guitarContainer.setAttribute('position', {
-          x: intersectPoint.x,
-          y: intersectPoint.y,
-          z: intersectPoint.z
-        });
-        guitarContainer.setAttribute('visible', 'true');
-        
-        isPlaced = true;
-        placeBtn.textContent = '✅ Гитара размещена';
-        placeBtn.disabled = true;
-        
-        console.log('Гитара размещена в:', intersectPoint);
-      }
+    // Обработка ошибок камеры
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      .then(stream => {
+        console.log('✅ Камера доступна');
+        stream.getTracks().forEach(track => track.stop());
+      })
+      .catch(err => {
+        loading.style.display = 'none';
+        error.style.display = 'block';
+        errorText.textContent = 'Нет доступа к камере: ' + err.message;
+        console.error('Camera error:', err);
+      });
+    
+    // Обработка обнаружения маркера
+    const marker = document.querySelector('a-marker[preset="kanji"]');
+    marker.addEventListener('markerFound', () => {
+      console.log('✅ Маркер Kanji найден!');
     });
     
-    // Кнопка размещения
-    placeBtn.addEventListener('click', () => {
-      if (!isPlaced) {
-        instructions.textContent = 'Коснитесь экрана чтобы разместить гитару';
-        instructions.style.animation = 'none';
-        instructions.style.opacity = '1';
-      }
+    marker.addEventListener('markerLost', () => {
+      console.log('❌ Маркер потерян');
     });
     
-    // Кнопка сброса
-    resetBtn.addEventListener('click', () => {
-      guitarContainer.setAttribute('visible', 'false');
-      isPlaced = false;
-      placeBtn.textContent = '📍 Разместить гитару';
-      placeBtn.disabled = false;
-      instructions.textContent = 'Двигайте телефон медленно, чтобы найти поверхность';
-      instructions.style.animation = 'fadeInOut 4s ease-in-out';
+    // Проверка загрузки модели
+    const model = document.querySelector('a-gltf-model');
+    model.addEventListener('model-loaded', () => {
+      console.log('✅ Модель загружена');
+    });
+    
+    model.addEventListener('error', (e) => {
+      console.error('❌ Ошибка модели:', e);
+      // Можно раскомментировать fallback куб выше
     });
   </script>
 </body>
