@@ -2,153 +2,125 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebAR Face - Без маркеров</title>
-    
-    <!-- Three.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- GLTF Loader -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-    <!-- MediaPipe Face Mesh -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-
-    <style>
-        body { margin: 0; overflow: hidden; background: #000; }
-        canvas { display: block; width: 100vw; height: 100vh; }
-        
-        /* Видео с камеры скрыто, мы рендерим его через Three.js */
-        .input_video { display: none; }
-        
-        #loading {
-            position: fixed; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            color: white; font-family: sans-serif;
-            background: rgba(0,0,0,0.8); padding: 20px;
-            border-radius: 10px; z-index: 100;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AR Гитара - Просто поверх камеры</title>
 </head>
 <body>
+    
+    <!-- Контейнер для 3D -->
+    <div id="ar-canvas"></div>
 
-    <div id="loading">Загрузка нейросети...</div>
-    <video class="input_video"></video>
+    <div id="loading">Загрузка камеры и модели...</div>
 
-    <script>
+    <!-- Подключаем Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
         let camera, scene, renderer, model;
-        const videoElement = document.getElementsByClassName('input_video')[0];
+        const videoElement = document.getElementById('camera-feed');
         const loadingDiv = document.getElementById('loading');
 
-        // 1. Инициализация Three.js
-        function initThree() {
+        // 1. Настройка сцены Three.js
+        function init() {
+            const container = document.getElementById('ar-canvas');
+
             scene = new THREE.Scene();
+            // Прозрачный фон сцены, чтобы было видно видео под ней
+            // Но мы будем использовать видео как текстуру фона для простоты освещения, 
+            // или просто оставим прозрачным.
             
-            // Камера Three.js должна совпадать с видео
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.z = 5;
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.z = 2; // Отодвигаем камеру назад
 
             renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            document.body.appendChild(renderer.domElement);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
 
-            // Свет
-            const light = new THREE.DirectionalLight(0xffffff, 1);
-            light.position.set(0, 1, 1);
-            scene.add(light);
-            const ambientLight = new THREE.AmbientLight(0x404040);
+            // Свет (важно, иначе модель будет черной)
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
             scene.add(ambientLight);
+            
+            const dirLight = new THREE.DirectionalLight(0xffffff, 2);
+            dirLight.position.set(5, 10, 7);
+            scene.add(dirLight);
 
             // Загрузка модели
-            const loader = new THREE.GLTFLoader();
-            loader.load('models/electric_guitar_explorer.glb', function (gltf) {
-                model = gltf.scene;
-                
-                // НАСТРОЙКА ПОЗИЦИИ: Гитара будет висеть перед лицом
-                // Тебе придется подобрать scale и position под свою модель
-                model.scale.set(0.5, 0.5, 0.5); 
-                model.rotation.y = Math.PI; // Развернуть к лицу
-                
-                scene.add(model);
-                loadingDiv.style.display = 'none';
-            }, undefined, function (error) {
-                console.error(error);
-                loadingDiv.innerText = "Ошибка загрузки модели";
-            });
+            const loader = new GLTFLoader();
+            loader.load(
+                'models/electric_guitar_explorer.glb', 
+                (gltf) => {
+                    model = gltf.scene;
+                    
+                    // === НАСТРОЙКА ПОЗИЦИИ И РАЗМЕРА ===
+                    // Подбери эти значения под свою модель!
+                    model.scale.set(0.5, 0.5, 0.5); 
+                    model.position.set(0, 0, 0); // Центр экрана
+                    model.rotation.y = Math.PI; // Повернуть к пользователю
+                    
+                    scene.add(model);
+                    loadingDiv.style.display = 'none';
+                },
+                (xhr) => {
+                    console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                },
+                (error) => {
+                    console.error('Ошибка загрузки:', error);
+                    loadingDiv.innerText = "Ошибка модели. Проверь путь.";
+                }
+            );
+
+            animate();
         }
 
-        // 2. Инициализация MediaPipe Face Mesh
-        function onResults(results) {
-            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-                const landmarks = results.multiFaceLandmarks[0];
-                
-                // Берем точку носа (индекс 33) или центра лица (168)
-                // Координаты нормализованы (0..1), нужно перевести в 3D мир
-                const nose = landmarks[33]; 
-                
-                if (model) {
-                    // Простая привязка: двигаем модель за носом
-                    // X инвертирован из-за зеркала камеры
-                    model.position.x = -(nose.x - 0.5) * 10; 
-                    model.position.y = -(nose.y - 0.5) * 10;
-                    
-                    // Z глубина примерная
-                    model.position.z = 2; 
-                }
-            }
+        // 2. Анимация
+        function animate() {
+            requestAnimationFrame(animate);
             
-            renderVideoBackground();
+            if (model) {
+                // Легкое вращение для красоты
+                model.rotation.y += 0.005;
+            }
+
             renderer.render(scene, camera);
         }
 
-        // Рендер видео с камеры на фон сцены
-        function renderVideoBackground() {
-            if (!videoElement.videoWidth) return;
-            
-            // Создаем текстуру из видео если её нет
-            if (!scene.background || scene.background.type !== 'Texture') {
-                 const videoTexture = new THREE.VideoTexture(videoElement);
-                 videoTexture.minFilter = THREE.LinearFilter;
-                 videoTexture.magFilter = THREE.LinearFilter;
-                 scene.background = videoTexture;
+        // 3. Запуск камеры
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'user', // Фронтальная камера ('environment' для задней)
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                });          
+            } catch (err) {
+                loadingDiv.innerText = "Нет доступа к камере! Разрешите доступ.";
+                console.error(err);
             }
         }
 
-        // Запуск камеры и FaceMesh
-        async function start() {
-            initThree();
-
-            const faceMesh = new FaceMesh({locateFile: (path, prefix) => {
-                return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${path}`;
-            }});
-            
-            faceMesh.setOptions({
-                maxNumFaces: 1,
-                refineLandmarks: true,
-                minDetectionConfidence: 0.5,
-                minTrackingConfidence: 0.5
-            });
-            
-            faceMesh.onResults(onResults);
-
-            const cameraUtils = new Camera(videoElement, {
-                onFrame: async () => {
-                    await faceMesh.send({image: videoElement});
-                },
-                width: 1280,
-                height: 720
-            });
-            
-            cameraUtils.start();
-        }
-
-        start();
-
-        // Ресайз окна
+        // Обработка поворота экрана
         window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            if (camera && renderer) {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
         });
+
+        startCamera();
     </script>
 </body>
 </html>
