@@ -123,8 +123,8 @@ button:focus-visible,a:focus-visible{
         }
         .viewer-container {
             width: 90%;
-            max-width: 600px;
-            height: 450px;
+            max-width: 900px;
+            height: 500px;
             background: #16213e;
             border-radius: 16px;
             overflow: hidden;
@@ -136,8 +136,6 @@ button:focus-visible,a:focus-visible{
             height: 100%;
             --poster-color: transparent;
         }
-
-        /* Кнопка AR (автоматически добавляется компонентом) */
         model-viewer::part(default-ar-button) {
             bottom: 16px;
             right: 16px;
