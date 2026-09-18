@@ -6,6 +6,9 @@
     <title>AR Гитара - Просто поверх камеры</title>
 </head>
 <body>
+
+    <!-- Элемент видео для фона -->
+    <video id="camera-feed" autoplay playsinline muted></video>
     
     <!-- Контейнер для 3D -->
     <div id="ar-canvas"></div>
@@ -104,7 +107,14 @@
                         width: { ideal: 1280 },
                         height: { ideal: 720 }
                     } 
-                });          
+                });
+                videoElement.srcObject = stream;
+                
+                // Когда видео готово, запускаем 3D
+                videoElement.onloadedmetadata = () => {
+                    videoElement.play();
+                    init();
+                };
             } catch (err) {
                 loadingDiv.innerText = "Нет доступа к камере! Разрешите доступ.";
                 console.error(err);
