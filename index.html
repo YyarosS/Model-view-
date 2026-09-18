@@ -1,137 +1,38 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AR Гитара - Просто поверх камеры</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101b2b">
+  <title>Каменный голем · WebAR</title>
+  <script type="module" src="vendor/model-viewer.min.js"></script>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-    <!-- Элемент видео для фона -->
-    <video id="camera-feed" autoplay playsinline muted></video>
-    
-    <!-- Контейнер для 3D -->
-    <div id="ar-canvas"></div>
-
-    <div id="loading">Загрузка камеры и модели...</div>
-
-    <!-- Подключаем Three.js -->
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-            }
-        }
-    </script>
-
-    <script type="module">
-        import * as THREE from 'three';
-        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-
-        let camera, scene, renderer, model;
-        const videoElement = document.getElementById('camera-feed');
-        const loadingDiv = document.getElementById('loading');
-
-        // 1. Настройка сцены Three.js
-        function init() {
-            const container = document.getElementById('ar-canvas');
-
-            scene = new THREE.Scene();
-            // Прозрачный фон сцены, чтобы было видно видео под ней
-            // Но мы будем использовать видео как текстуру фона для простоты освещения, 
-            // или просто оставим прозрачным.
-            
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.z = 2; // Отодвигаем камеру назад
-
-            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-            container.appendChild(renderer.domElement);
-
-            // Свет (важно, иначе модель будет черной)
-            const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
-            scene.add(ambientLight);
-            
-            const dirLight = new THREE.DirectionalLight(0xffffff, 2);
-            dirLight.position.set(5, 10, 7);
-            scene.add(dirLight);
-
-            // Загрузка модели
-            const loader = new GLTFLoader();
-            loader.load(
-                'models/electric_guitar_explorer.glb', 
-                (gltf) => {
-                    model = gltf.scene;
-                    
-                    // === НАСТРОЙКА ПОЗИЦИИ И РАЗМЕРА ===
-                    // Подбери эти значения под свою модель!
-                    model.scale.set(0.5, 0.5, 0.5); 
-                    model.position.set(0, 0, 0); // Центр экрана
-                    model.rotation.y = Math.PI; // Повернуть к пользователю
-                    
-                    scene.add(model);
-                    loadingDiv.style.display = 'none';
-                },
-                (xhr) => {
-                    console.log((xhr.loaded / xhr.total * 100) + '% loaded');
-                },
-                (error) => {
-                    console.error('Ошибка загрузки:', error);
-                    loadingDiv.innerText = "Ошибка модели. Проверь путь.";
-                }
-            );
-
-            animate();
-        }
-
-        // 2. Анимация
-        function animate() {
-            requestAnimationFrame(animate);
-            
-            if (model) {
-                // Легкое вращение для красоты
-                model.rotation.y += 0.005;
-            }
-
-            renderer.render(scene, camera);
-        }
-
-        // 3. Запуск камеры
-        async function startCamera() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { 
-                        facingMode: 'environment', // Фронтальная камера ('environment' для задней)
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    } 
-                });
-                videoElement.srcObject = stream;
-                
-                // Когда видео готово, запускаем 3D
-                videoElement.onloadedmetadata = () => {
-                    videoElement.play();
-                    init();
-                };
-            } catch (err) {
-                loadingDiv.innerText = "Нет доступа к камере! Разрешите доступ.";
-                console.error(err);
-            }
-        }
-
-        // Обработка поворота экрана
-        window.addEventListener('resize', () => {
-            if (camera && renderer) {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            }
-        });
-
-        startCamera();
-    </script>
+  <main>
+    <section class="viewer" aria-label="Интерактивная 3D-модель">
+      <div class="viewer-label"><span class="dot"></span> 3D / AR <span class="number">GOLEM</span></div>
+      <model-viewer id="golem" src="assets/golem.glb" alt="Каменный голем"
+        ar ar-modes="webxr scene-viewer quick-look" ar-placement="floor"
+        camera-controls touch-action="pan-y" auto-rotate
+        environment-image="assets/moon_1k.hdr" exposure="1"
+        shadow-intensity="1" shadow-softness="0.8" camera-orbit="25deg 75deg auto">
+        <button class="ar-button" slot="ar-button">⌖ Разместить в AR</button>
+      </model-viewer>
+      <div class="viewer-footer"><button id="rotate" type="button" aria-pressed="true">Вращение: вкл.</button></div>
+    </section>
+  </main>
+  <script>
+    const viewer = document.querySelector('model-viewer');
+    const rotate = document.querySelector('#rotate');
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) { viewer.removeAttribute('auto-rotate'); rotate.textContent = 'Вращение: выкл.'; rotate.setAttribute('aria-pressed', 'false'); }
+    rotate.addEventListener('click', () => {
+    const enabled = !viewer.hasAttribute('auto-rotate');
+    viewer.toggleAttribute('auto-rotate', enabled);
+    rotate.setAttribute('aria-pressed', String(enabled));
+    rotate.textContent = `Вращение: ${enabled ? 'вкл.' : 'выкл.'}`;
+    });
+  </script>
 </body>
 </html>

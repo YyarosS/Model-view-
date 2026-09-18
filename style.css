@@ -1,33 +1,116 @@
-body { margin: 0; overflow: hidden; background-color: #000; }
-        
-        /* Видео с камеры на весь экран */
-        #camera-feed {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            object-fit: cover; /* Заполняет экран, обрезая края */
-            z-index: 1;
-            transform: scaleX(-1); /* Отражаем по горизонтали, как зеркало (опционально) */
-        }
-
-        /* Canvas Three.js поверх видео */
-        #ar-canvas {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 2;
-            pointer-events: none; /* Чтобы клики проходили сквозь, если нужно */
-        }
-
-        #loading {
-            position: fixed;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            font-family: sans-serif;
-            background: rgba(0,0,0,0.7);
-            padding: 20px;
-            border-radius: 10px;
-            z-index: 10;
-            text-align: center;
-        }
+:root{
+  font-family:Inter,
+  Arial,sans-serif;
+  color:#eaf0f7;
+  background:#101b2b;
+  font-synthesis:none;
+  color-scheme:dark
+}
+*{
+  box-sizing:border-box
+}
+body{
+  margin:0
+}
+main{
+  max-width:1140px;
+  margin:auto;
+  padding:30px 36px
+}
+header{
+  display:flex;
+  align-items:center
+}
+.brand{
+  color:inherit;
+  text-decoration:none;
+  font-weight:800;
+  letter-spacing:3px
+}
+.brand span{
+  font-size:12px;
+  color:#a9b7c7;
+  letter-spacing:1px
+}
+.viewer{
+  margin-top:34px;
+  background:radial-gradient(ellipse at 50% 40%,#f6f6f1,#cbd7d6);
+  border-radius:18px;
+  overflow:hidden;
+  color:#263d42
+}
+.viewer-label{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  font-size:10px;
+  letter-spacing:1.6px;
+  padding:23px 25px
+}
+.dot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#36765c
+}
+.number{
+  margin-left:auto;
+  color:#587074
+}
+model-viewer{
+  width:100%;
+  height:560px;
+  --progress-bar-color:#36765c;
+  --progress-mask:#dae2df
+}
+.ar-button{
+  position:absolute;
+  bottom:18px;
+  left:50%;
+  transform:translateX(-50%);
+  background:#173f34;
+  color:#fff;
+  padding:15px 24px;
+  border:0;
+  border-radius:30px;
+  white-space:nowrap;
+  font:600 14px Inter,Arial,sans-serif;
+  cursor:pointer
+}
+.viewer-footer{
+  display:flex;
+  justify-content:flex-end;
+  padding:14px 25px;
+  border-top:1px solid #b6c6c5
+}
+button:focus-visible,a:focus-visible{
+  outline:3px solid #449d83;
+  outline-offset:4px
+}
+#rotate{
+  background:transparent;
+  color:#263d42;
+  border:1px solid #90a7a7;
+  border-radius:20px;
+  padding:9px 13px;
+  font:12px Inter,Arial,sans-serif;
+  cursor:pointer
+}
+@media(max-width:600px){
+  main{
+    padding:22px 18px
+  }
+  .viewer{
+    margin-top:26px
+  }
+  model-viewer{
+    height:460px
+  }
+  .viewer-label{
+    padding:20px 16px;
+    font-size:8px
+  }
+  .viewer-footer{
+    padding:14px
+  }
+}
