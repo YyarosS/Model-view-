@@ -3,7 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Задание 1 — WebAR с model-viewer</title>
+  <title>WebAR Гитара - AR.js</title>
+  
+  <!-- A-Frame -->
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  
+  <!-- AR.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.5/dist/aframe/build/ar.js"></script>
+  
   <style>
     * {
       margin: 0;
@@ -13,225 +20,322 @@
     
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #1a1a1a;
-      color: white;
-      min-height: 100vh;
+      overflow: hidden;
+    }
+    
+    .ui-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1000;
       display: flex;
       flex-direction: column;
+      justify-content: space-between;
+      padding: 20px;
     }
     
     .header {
-      padding: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 15px;
+      border-radius: 10px;
       text-align: center;
-      background: rgba(0, 0, 0, 0.5);
+      pointer-events: auto;
     }
     
-    h1 {
-      font-size: 1.5rem;
-      margin-bottom: 10px;
+    .header h1 {
+      font-size: 1.3rem;
+      margin-bottom: 5px;
     }
     
-    .instructions {
+    .header p {
       font-size: 0.9rem;
-      opacity: 0.8;
-      max-width: 600px;
-      margin: 0 auto;
+      opacity: 0.9;
     }
     
-    model-viewer {
-      width: 100%;
-      height: calc(100vh - 150px);
-      background: #2a2a2a;
-      --poster-color: transparent;
+    .footer {
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+      pointer-events: auto;
     }
     
-    .ar-button {
-      position: absolute;
-      bottom: 20px;
-      right: 20px;
+    .marker-link {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 8px 16px;
       background: #4CAF50;
       color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 25px;
-      font-size: 1rem;
-      cursor: pointer;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-      transition: all 0.3s ease;
-      z-index: 100;
-    }
-    
-    .ar-button:hover {
-      background: #45a049;
-      transform: scale(1.05);
-    }
-    
-    .ar-button:disabled {
-      background: #666;
-      cursor: not-allowed;
-      opacity: 0.6;
-    }
-    
-    .status {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.8);
-      padding: 10px 20px;
+      text-decoration: none;
       border-radius: 20px;
       font-size: 0.9rem;
+      transition: background 0.3s;
+    }
+    
+    .marker-link:hover {
+      background: #45a049;
+    }
+    
+    .loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 30px 50px;
+      border-radius: 15px;
+      font-size: 1.2rem;
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .spinner {
+      width: 30px;
+      height: 30px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    /* @keyframes spin{
+      margin: 0;
+      padding: 0;
+      box-sizing: 1px black border-box;
+    } */
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      overflow: hidden;
+    }
+    
+    .ui-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
       z-index: 1000;
-      display: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px;
     }
     
-    .status.show {
-      display: block;
-    }
-    
-    .fallback-message {
-      display: none;
-      padding: 40px 20px;
-      text-align: center;
-      background: #2a2a2a;
-      margin: 20px;
+    .header {
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 15px;
       border-radius: 10px;
+      text-align: center;
+      pointer-events: auto;
     }
     
-    .fallback-message.show {
+    .header h1 {
+      font-size: 1.3rem;
+      margin-bottom: 5px;
+    }
+    
+    .header p {
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+    
+    .footer {
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+      pointer-events: auto;
+    }
+    
+    .marker-link {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 8px 16px;
+      background: #4CAF50;
+      color: white;
+      text-decoration: none;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      transition: background 0.3s;
+    }
+    
+    .marker-link:hover {
+      background: #45a049;
+    }
+    
+    .loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 30px 50px;
+      border-radius: 15px;
+      font-size: 1.2rem;
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .spinner {
+      width: 30px;
+      height: 30px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .error-message {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 0, 0, 0.9);
+      color: white;
+      padding: 30px;
+      border-radius: 15px;
+      text-align: center;
+      z-index: 2000;
+      display: none;
+      max-width: 90%;
+    }
+    
+    .error-message.show {
       display: block;
-    }
-    
-    @media (max-width: 768px) {
-      h1 {
-        font-size: 1.2rem;
-      }
-      
-      .instructions {
-        font-size: 0.8rem;
-      }
     }
   </style>
-  
-  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
 </head>
 <body>
-  <div class="header">
-    <h1>🎸 Электрогитара в AR</h1>
-    <p class="instructions">
-      Нажмите кнопку "AR" чтобы разместить гитару в вашем пространстве. 
-      Работает в Chrome на Android и Safari на iOS.
-    </p>
+  <!-- Индикатор загрузки -->
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <span>Загрузка камеры...</span>
   </div>
-
-  <model-viewer
-    id="guitar-viewer"
-    src="models/electric_guitar_explorer.glb"
-    ios-src="models/Electric_Guitar_Explorer.usdz"
-    alt="3D модель электрогитары Explorer"
-    ar
-    ar-modes="webxr scene-viewer quick-look"
-    ar-placement="floor"
-    ar-scale="auto"
-    camera-controls
-    auto-rotate
-    shadow-intensity="1"
-    exposure="1"
-    environment-image="neutral"
-    poster="models/poster.png"
-    loading="eager"
-    disable-zoom>
-    
-    <button slot="ar-button" class="ar-button" id="ar-button">
-      🥽 Посмотреть в AR
-    </button>
-    
-    <div slot="progress-bar"></div>
-  </model-viewer>
-
-  <div class="status" id="status"></div>
   
-  <div class="fallback-message" id="fallback">
-    <h2>⚠️ AR недоступен</h2>
-    <p>Ваш браузер или устройство не поддерживают WebAR.</p>
-    <p>Вы можете вращать модель вручную в 3D режиме.</p>
+  <!-- Сообщение об ошибке -->
+  <div class="error-message" id="error">
+    <h2>⚠️ Ошибка</h2>
+    <p id="error-text">Не удалось получить доступ к камере</p>
+    <button onclick="location.reload()" style="margin-top: 15px; padding: 10px 20px; background: white; color: red; border: none; border-radius: 5px; cursor: pointer;">
+      Повторить
+    </button>
   </div>
+
+  <!-- UI Overlay -->
+  <div class="ui-overlay">
+    <div class="header">
+      <h1>🎸 Электрогитара в AR</h1>
+      <p>Наведите камеру на маркер Hiro</p>
+    </div>
+    
+    <div class="footer">
+      <p>Маркер не распознан? Скачайте его:</p>
+      <a href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" 
+         target="_blank" 
+         class="marker-link">
+        📥 Скачать маркер Hiro
+      </a>
+    </div>
+  </div>
+
+  <!-- AR Scene -->
+  <a-scene 
+    embedded 
+    arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
+    renderer="logarithmicDepthBuffer: true; antialias: true;"
+    vr-mode-ui="enabled: false">
+    
+    <!-- Маркер Hiro -->
+    <a-marker preset="hiro" emitevents="true">
+      <!-- 3D модель гитары -->
+      <a-gltf-model 
+        id="guitar"
+        src="models/electric_guitar_explorer.glb"
+        position="0 0 0"
+        scale="0.3 0.3 0.3"
+        rotation="-90 0 0"
+        animation-mixer>
+      </a-gltf-model>
+      
+      <!-- Альтернатива: простой куб если модель не загрузится -->
+      <!--
+      <a-box 
+        position="0 0.5 0" 
+        material="color: #4CAF50; opacity: 0.8"
+        animation="property: rotation; to: 0 360 0; loop: true; dur: 3000">
+      </a-box>
+      -->
+    </a-marker>
+    
+    <!-- Камера -->
+    <a-entity camera></a-entity>
+  </a-scene>
 
   <script>
-    const modelViewer = document.querySelector('#guitar-viewer');
-    const arButton = document.querySelector('#ar-button');
-    const status = document.querySelector('#status');
-    const fallback = document.querySelector('#fallback');
-
-    // Проверка поддержки AR
-    async function checkARSupport() {
-      try {
-        if ('xr' in navigator) {
-          const supported = await navigator.xr.isSessionSupported('immersive-ar');
-          return supported;
-        }
-        return false;
-      } catch (error) {
-        console.log('AR проверка не удалась:', error);
-        return false;
-      }
-    }
-
-    // Показать статус
-    function showStatus(message, duration = 3000) {
-      status.textContent = message;
-      status.classList.add('show');
+    const loading = document.getElementById('loading');
+    const error = document.getElementById('error');
+    const errorText = document.getElementById('error-text');
+    const scene = document.querySelector('a-scene');
+    
+    // Скрыть индикатор загрузки когда сцена готова
+    scene.addEventListener('loaded', () => {
       setTimeout(() => {
-        status.classList.remove('show');
-      }, duration);
-    }
-
-    // Обработчик активации AR
-    modelViewer.addEventListener('ar-status', (event) => {
-      const status = event.detail.status;
-      
-      switch(status) {
-        case 'session-started':
-          showStatus('✅ AR режим активирован');
-          break;
-        case 'session-ended':
-          showStatus('AR режим завершен');
-          break;
-        case 'failed':
-          showStatus('❌ Не удалось запустить AR');
-          fallback.classList.add('show');
-          break;
-      }
+        loading.style.display = 'none';
+      }, 1000);
     });
-
-    // Обработчик ошибок загрузки модели
-    modelViewer.addEventListener('error', (event) => {
-      console.error('Ошибка загрузки модели:', event);
-      showStatus('❌ Ошибка загрузки 3D модели');
+    
+    // Обработка ошибок доступа к камере
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      .then(stream => {
+        console.log('Камера доступна');
+        stream.getTracks().forEach(track => track.stop());
+      })
+      .catch(err => {
+        loading.style.display = 'none';
+        error.classList.add('show');
+        errorText.textContent = 'Ошибка: ' + err.message;
+        console.error('Camera error:', err);
+      });
+    
+    // Обработка обнаружения маркера
+    const marker = document.querySelector('a-marker');
+    marker.addEventListener('markerFound', () => {
+      console.log('✅ Маркер найден!');
     });
-
-    // Проверка при загрузке страницы
-    window.addEventListener('load', async () => {
-      const arSupported = await checkARSupport();
-      
-      if (!arSupported) {
-        console.log('WebXR AR не поддерживается, пробуем другие режимы...');
-        // model-viewer автоматически попробует scene-viewer на Android
-      }
-      
-      showStatus('📱 Загрузка модели...', 2000);
+    
+    marker.addEventListener('markerLost', () => {
+      console.log('❌ Маркер потерян');
     });
-
-    // Дополнительная проверка для Android без ARCore
-    if (/Android/.test(navigator.userAgent)) {
-      // Проверяем наличие Scene Viewer (альтернатива WebXR)
-      const hasSceneViewer = /Chrome/.test(navigator.userAgent) && 
-                            /Android/.test(navigator.userAgent);
-      
-      if (!hasSceneViewer) {
-        console.warn('Scene Viewer может быть недоступен');
-      }
-    }
+    
+    // Проверка загрузки модели
+    const guitar = document.getElementById('guitar');
+    guitar.addEventListener('model-loaded', () => {
+      console.log('✅ Модель загружена');
+    });
+    
+    guitar.addEventListener('error', (e) => {
+      console.error('❌ Ошибка загрузки модели:', e);
+      // Можно показать fallback объект
+    });
   </script>
 </body>
 </html>
