@@ -3,13 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>WebAR Гитара - AR.js</title>
-  
-  <!-- A-Frame -->
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-  
-  <!-- AR.js -->
-  <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.5/dist/aframe/build/ar.js"></script>
+  <title>WebAR Гитара - WebXR Hit-Test</title>
   
   <style>
     * {
@@ -21,6 +15,19 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       overflow: hidden;
+      background: #000;
+    }
+    
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+    
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
     }
     
     .ui-overlay {
@@ -56,7 +63,7 @@
       opacity: 0.9;
     }
     
-    .footer {
+    .controls {
       background: rgba(0, 0, 0, 0.7);
       color: white;
       padding: 15px;
@@ -65,23 +72,38 @@
       pointer-events: auto;
     }
     
-    .marker-link {
+    .btn {
       display: inline-block;
-      margin-top: 10px;
-      padding: 8px 16px;
+      margin: 5px;
+      padding: 12px 24px;
       background: #4CAF50;
       color: white;
-      text-decoration: none;
-      border-radius: 20px;
-      font-size: 0.9rem;
-      transition: background 0.3s;
+      border: none;
+      border-radius: 25px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
     }
     
-    .marker-link:hover {
+    .btn:hover:not(:disabled) {
       background: #45a049;
+      transform: scale(1.05);
     }
     
-    .loading {
+    .btn:disabled {
+      background: #666;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    
+    .btn.start-ar {
+      background: #2196F3;
+      font-size: 1.1rem;
+      padding: 15px 30px;
+    }
+    
+    .status {
       position: fixed;
       top: 50%;
       left: 50%;
@@ -92,250 +114,331 @@
       border-radius: 15px;
       font-size: 1.2rem;
       z-index: 2000;
-      display: flex;
-      align-items: center;
-      gap: 15px;
+      text-align: center;
     }
     
     .spinner {
-      width: 30px;
-      height: 30px;
+      width: 40px;
+      height: 40px;
       border: 4px solid rgba(255, 255, 255, 0.3);
       border-top-color: white;
       border-radius: 50%;
       animation: spin 1s linear infinite;
-    }
-    
-    /* @keyframes spin{
-      margin: 0;
-      padding: 0;
-      box-sizing: 1px black border-box;
-    } */
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      overflow: hidden;
-    }
-    
-    .ui-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 20px;
-    }
-    
-    .header {
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
-      padding: 15px;
-      border-radius: 10px;
-      text-align: center;
-      pointer-events: auto;
-    }
-    
-    .header h1 {
-      font-size: 1.3rem;
-      margin-bottom: 5px;
-    }
-    
-    .header p {
-      font-size: 0.9rem;
-      opacity: 0.9;
-    }
-    
-    .footer {
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
-      padding: 15px;
-      border-radius: 10px;
-      text-align: center;
-      pointer-events: auto;
-    }
-    
-    .marker-link {
-      display: inline-block;
-      margin-top: 10px;
-      padding: 8px 16px;
-      background: #4CAF50;
-      color: white;
-      text-decoration: none;
-      border-radius: 20px;
-      font-size: 0.9rem;
-      transition: background 0.3s;
-    }
-    
-    .marker-link:hover {
-      background: #45a049;
-    }
-    
-    .loading {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(0, 0, 0, 0.9);
-      color: white;
-      padding: 30px 50px;
-      border-radius: 15px;
-      font-size: 1.2rem;
-      z-index: 2000;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-    
-    .spinner {
-      width: 30px;
-      height: 30px;
-      border: 4px solid rgba(255, 255, 255, 0.3);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
     }
     
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
     
-    .error-message {
+    .instructions {
       position: fixed;
-      top: 50%;
+      bottom: 120px;
       left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(255, 0, 0, 0.9);
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
       color: white;
-      padding: 30px;
-      border-radius: 15px;
+      padding: 15px 25px;
+      border-radius: 25px;
+      font-size: 1rem;
+      z-index: 1000;
       text-align: center;
-      z-index: 2000;
       display: none;
-      max-width: 90%;
     }
     
-    .error-message.show {
+    .instructions.show {
       display: block;
+      animation: fadeIn 0.5s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
     }
   </style>
 </head>
 <body>
-  <!-- Индикатор загрузки -->
-  <div class="loading" id="loading">
-    <div class="spinner"></div>
-    <span>Загрузка камеры...</span>
+  <div id="canvas-container"></div>
+  
+  <!-- Начальный экран -->
+  <div class="status" id="startScreen">
+    <h2 style="margin-bottom: 20px;">🎸 AR Гитара</h2>
+    <p style="margin-bottom: 20px; opacity: 0.8;">Разместите гитару в вашем пространстве</p>
+    <button class="btn start-ar" id="startArBtn">▶️ Запустить AR</button>
+    <p style="margin-top: 15px; font-size: 0.8rem; opacity: 0.6;">
+      Требуется Chrome на Android
+    </p>
   </div>
   
-  <!-- Сообщение об ошибке -->
-  <div class="error-message" id="error">
-    <h2>⚠️ Ошибка</h2>
-    <p id="error-text">Не удалось получить доступ к камере</p>
-    <button onclick="location.reload()" style="margin-top: 15px; padding: 10px 20px; background: white; color: red; border: none; border-radius: 5px; cursor: pointer;">
-      Повторить
-    </button>
+  <!-- Индикатор загрузки -->
+  <div class="status" id="loadingScreen" style="display: none;">
+    <div class="spinner"></div>
+    <span>Загрузка AR...</span>
   </div>
 
-  <!-- UI Overlay -->
-  <div class="ui-overlay">
+  <!-- UI Overlay (показывается после запуска AR) -->
+  <div class="ui-overlay" id="arUI" style="display: none;">
     <div class="header">
       <h1>🎸 Электрогитара в AR</h1>
-      <p>Наведите камеру на маркер Hiro</p>
+      <p>Найдите плоскую поверхность</p>
     </div>
     
-    <div class="footer">
-      <p>Маркер не распознан? Скачайте его:</p>
-      <a href="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" 
-         target="_blank" 
-         class="marker-link">
-        📥 Скачать маркер Hiro
-      </a>
+    <div class="instructions" id="instructions">
+      Наведите камеру на пол или стол
+    </div>
+    
+    <div class="controls">
+      <button class="btn" id="placeBtn" disabled>📍 Разместить здесь</button>
+      <button class="btn" id="resetBtn">🔄 Сбросить</button>
     </div>
   </div>
 
-  <!-- AR Scene -->
-  <a-scene 
-    embedded 
-    arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
-    renderer="logarithmicDepthBuffer: true; antialias: true;"
-    vr-mode-ui="enabled: false">
-    
-    <!-- Маркер Hiro -->
-    <a-marker preset="hiro" emitevents="true">
-      <!-- 3D модель гитары -->
-      <a-gltf-model 
-        id="guitar"
-        src="models/electric_guitar_explorer.glb"
-        position="0 0 0"
-        scale="0.3 0.3 0.3"
-        rotation="-90 0 0"
-        animation-mixer>
-      </a-gltf-model>
-      
-      <!-- Альтернатива: простой куб если модель не загрузится -->
-      <!--
-      <a-box 
-        position="0 0.5 0" 
-        material="color: #4CAF50; opacity: 0.8"
-        animation="property: rotation; to: 0 360 0; loop: true; dur: 3000">
-      </a-box>
-      -->
-    </a-marker>
-    
-    <!-- Камера -->
-    <a-entity camera></a-entity>
-  </a-scene>
+  <!-- Three.js и WebXR -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
 
-  <script>
-    const loading = document.getElementById('loading');
-    const error = document.getElementById('error');
-    const errorText = document.getElementById('error-text');
-    const scene = document.querySelector('a-scene');
-    
-    // Скрыть индикатор загрузки когда сцена готова
-    scene.addEventListener('loaded', () => {
-      setTimeout(() => {
-        loading.style.display = 'none';
-      }, 1000);
-    });
-    
-    // Обработка ошибок доступа к камере
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-      .then(stream => {
-        console.log('Камера доступна');
-        stream.getTracks().forEach(track => track.stop());
-      })
-      .catch(err => {
-        loading.style.display = 'none';
-        error.classList.add('show');
-        errorText.textContent = 'Ошибка: ' + err.message;
-        console.error('Camera error:', err);
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { ARButton } from 'three/addons/webxr/ARButton.js';
+
+    let camera, scene, renderer;
+    let controller;
+    let reticle;
+    let hitTestSource = null;
+    let hitTestSourceRequested = false;
+    let guitarModel = null;
+    let isPlaced = false;
+
+    const startScreen = document.getElementById('startScreen');
+    const loadingScreen = document.getElementById('loadingScreen');
+    const arUI = document.getElementById('arUI');
+    const startArBtn = document.getElementById('startArBtn');
+    const placeBtn = document.getElementById('placeBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const instructions = document.getElementById('instructions');
+
+    init();
+    animate();
+
+    function init() {
+      const container = document.getElementById('canvas-container');
+
+      // Сцена
+      scene = new THREE.Scene();
+
+      // Камера
+      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+
+      // Освещение
+      const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+      light.position.set(0.5, 1, 0.25);
+      scene.add(light);
+      
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+      directionalLight.position.set(5, 10, 7);
+      scene.add(directionalLight);
+
+      // Рендерер
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.xr.enabled = true;
+      container.appendChild(renderer.domElement);
+
+      // Контроллер для tap-to-place
+      controller = renderer.xr.getController(0);
+      controller.addEventListener('select', onSelect);
+      scene.add(controller);
+
+      // Ретикл (прицел для размещения)
+      reticle = new THREE.Mesh(
+        new THREE.RingGeometry(0.15, 0.2, 32).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color: 0x4CAF50 })
+      );
+      reticle.matrixAutoUpdate = false;
+      reticle.visible = false;
+      scene.add(reticle);
+
+      // Обработчики событий
+      startArBtn.addEventListener('click', onStartAR);
+      placeBtn.addEventListener('click', onPlaceGuitar);
+      resetBtn.addEventListener('click', onReset);
+
+      // Resize handler
+      window.addEventListener('resize', onWindowResize);
+    }
+
+    function onStartAR() {
+      startScreen.style.display = 'none';
+      loadingScreen.style.display = 'flex';
+
+      // Создаем кнопку AR от Three.js
+      const arButton = ARButton.createButton(renderer, {
+        requiredFeatures: ['hit-test'],
+        optionalFeatures: ['dom-overlay'],
+        domOverlay: { root: document.body }
       });
-    
-    // Обработка обнаружения маркера
-    const marker = document.querySelector('a-marker');
-    marker.addEventListener('markerFound', () => {
-      console.log('✅ Маркер найден!');
-    });
-    
-    marker.addEventListener('markerLost', () => {
-      console.log('❌ Маркер потерян');
-    });
-    
-    // Проверка загрузки модели
-    const guitar = document.getElementById('guitar');
-    guitar.addEventListener('model-loaded', () => {
-      console.log('✅ Модель загружена');
-    });
-    
-    guitar.addEventListener('error', (e) => {
-      console.error('❌ Ошибка загрузки модели:', e);
-      // Можно показать fallback объект
-    });
+      
+      document.body.appendChild(arButton);
+      
+      // Автоматически кликаем по кнопке AR
+      setTimeout(() => {
+        arButton.click();
+      }, 100);
+      
+      // Показываем UI когда AR запущен
+      renderer.xr.addEventListener('sessionstart', () => {
+        loadingScreen.style.display = 'none';
+        arUI.style.display = 'flex';
+        instructions.classList.add('show');
+        
+        setTimeout(() => {
+          instructions.classList.remove('show');
+        }, 5000);
+      });
+    }
+
+    function onSelect() {
+      if (reticle.visible && !isPlaced) {
+        placeGuitarAtReticle();
+      }
+    }
+
+    function onPlaceGuitar() {
+      if (reticle.visible && !isPlaced) {
+        placeGuitarAtReticle();
+      }
+    }
+
+    function placeGuitarAtReticle() {
+      if (!guitarModel) {
+        loadGuitarModel();
+      }
+      
+      guitarModel.position.copy(reticle.position);
+      guitarModel.rotation.set(-Math.PI / 2, 0, 0);
+      guitarModel.visible = true;
+      
+      isPlaced = true;
+      placeBtn.textContent = '✅ Размещено';
+      placeBtn.disabled = true;
+      
+      // Анимация появления
+      guitarModel.scale.set(0, 0, 0);
+      animateScale(guitarModel, 0.3);
+    }
+
+    function animateScale(object, targetScale) {
+      let scale = 0;
+      const interval = setInterval(() => {
+        scale += 0.02;
+        object.scale.set(scale, scale, scale);
+        
+        if (scale >= targetScale) {
+          object.scale.set(targetScale, targetScale, targetScale);
+          clearInterval(interval);
+        }
+      }, 16);
+    }
+
+    function onReset() {
+      if (guitarModel) {
+        guitarModel.visible = false;
+      }
+      isPlaced = false;
+      placeBtn.textContent = '📍 Разместить здесь';
+      placeBtn.disabled = false;
+      instructions.classList.add('show');
+      
+      setTimeout(() => {
+        instructions.classList.remove('show');
+      }, 5000);
+    }
+
+    function loadGuitarModel() {
+      const loader = new GLTFLoader();
+      loader.load(
+        'models/electric_guitar_explorer.glb',
+        (gltf) => {
+          guitarModel = gltf.scene;
+          guitarModel.visible = false;
+          scene.add(guitarModel);
+          console.log('Модель загружена');
+        },
+        undefined,
+        (error) => {
+          console.error('Ошибка загрузки модели:', error);
+          // Fallback: создаем простой куб
+          createFallbackObject();
+        }
+      );
+    }
+
+    function createFallbackObject() {
+      const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+      const material = new THREE.MeshStandardMaterial({ color: 0x4CAF50 });
+      guitarModel = new THREE.Mesh(geometry, material);
+      guitarModel.visible = false;
+      scene.add(guitarModel);
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate() {
+      renderer.setAnimationLoop(render);
+    }
+
+    function render(timestamp, frame) {
+      if (frame) {
+        const referenceSpace = renderer.xr.getReferenceSpace();
+        const session = renderer.xr.getSession();
+
+        if (hitTestSourceRequested === false) {
+          session.requestReferenceSpace('viewer').then((referenceSpace) => {
+            session.requestHitTestSource({ space: referenceSpace }).then((source) => {
+              hitTestSource = source;
+            });
+          });
+
+          session.addEventListener('end', () => {
+            hitTestSourceRequested = false;
+            hitTestSource = null;
+          });
+
+          hitTestSourceRequested = true;
+        }
+
+        if (hitTestSource) {
+          const hitTestResults = frame.getHitTestResults(hitTestSource);
+
+          if (hitTestResults.length > 0) {
+            const hit = hitTestResults[0];
+            reticle.visible = true;
+            reticle.matrix.fromArray(hit.getPose(referenceSpace).transform.matrix);
+            
+            if (!isPlaced) {
+              placeBtn.disabled = false;
+            }
+          } else {
+            reticle.visible = false;
+            placeBtn.disabled = true;
+          }
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
   </script>
 </body>
 </html>
